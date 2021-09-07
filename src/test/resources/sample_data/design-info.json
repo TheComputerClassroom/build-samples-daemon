@@ -1,0 +1,17 @@
+{
+  "sampleData": {
+    "3436d7a6-0541-4469-8209-c4ea489d50a8": {
+      "vars-fileAttrs": "sample_data/localfileattributes.dwl"
+    },
+    "90e378fe-fae4-426d-93c4-b573b8801330": {
+      "vars-savedPayload": "sample_data/java_1.dwl",
+      "payload": "sample_data/java.dwl"
+    },
+    "5224918d-911c-4ccf-b024-123276a39d4b": {
+      "payload": "sample_data/java_2.dwl"
+    },
+    "ea8b5c7f-423e-4981-92d2-58eeadebb4b4": {
+      "vars-pathWithoutSuffix": "sample_data/defaultstringtype.dwl"
+    }
+  }
+}
