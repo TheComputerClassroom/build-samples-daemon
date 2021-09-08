@@ -48,7 +48,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 							</try>
 	</sub-flow>
 	<sub-flow name="processFilesInZip" doc:id="b9e5e695-e3ba-42a4-b13b-3b9857abbe07" >
-		<foreach doc:name="process each file" doc:id="35239063-b9c1-4d2e-8171-de1114b9bf6f" collection="#[import entrySet from dw::core::Objects --- entrySet(payload)]" doc:description='The foreach loop goes through each element in the payload, i.e. each file in the zip, and determines what to do with it.&#10;a) Skip empty files and files that donot end in ".raml"&#10;b) Only process .raml files that are "NamedExample" RAML fragments'>
+		<foreach doc:name="process each file" doc:id="35239063-b9c1-4d2e-8171-de1114b9bf6f" collection="#[import entrySet from dw::core::Objects --- entrySet(message.payload)]" doc:description='The foreach loop goes through each element in the payload, i.e. each file in the zip, and determines what to do with it.&#10;a) Skip empty files and files that donot end in ".raml"&#10;b) Only process .raml files that are "NamedExample" RAML fragments'>
 			<choice doc:name="reject empty and non-RAML files" doc:id="5ef67dc2-9f44-463f-a78d-bdd37204020c">
 				<when expression='#[import substringAfterLast from dw::core::Strings&#10;---&#10;(substringAfterLast(payload[0],".") != "raml")&#10;or &#10;(0 == sizeOf(payload[1]))]'>
 					<logger level="INFO" doc:name="skipping file" doc:id="73632887-32e0-405b-ab72-97a0d5b83069" message="#['\nitem ' ++ (payload pluck $$)[0] ++ ' is empty  or not RAML. skipping...']" />
@@ -56,7 +56,7 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 				<otherwise>
 					<choice doc:name="only write NamedExample fragments" doc:id="a445c2ff-b5c2-48cf-bf08-1b1727a279bc" doc:description="From here on:&#10;- (payload pluck $$)[0] contains the name of the file to be written&#10;- (payload pluck $)[0] contains the contents of that file as extracted from the zip">
 						<when expression='#[startsWith(payload[1],"#%RAML 1.0 NamedExample")]'>
-							<flow-ref doc:name="Flow Reference" doc:id="8325074d-9244-4d19-8c32-e55466ffb859" name="processNamedExampleFile" />
+							<flow-ref doc:name="processNamedExampleFile" doc:id="8325074d-9244-4d19-8c32-e55466ffb859" name="processNamedExampleFile" />
 						</when>
 					</choice>
 				</otherwise>
@@ -70,16 +70,16 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 			</scheduling-strategy>
 			<file:matcher filenamePattern="*.zip" directories="EXCLUDE" symLinks="EXCLUDE" notUpdatedInTheLast="5" timeUnit="SECONDS"/>
 		</file:listener>
-		<set-variable value="#[attributes]" doc:name="fileAttrs " doc:id="3ff5c473-f41b-415f-87b9-2370a819ddf3" variableName="fileAttrs" doc:description="Remember the attributes from the On New Or Updated File in case they get trashed in a later processor."/>
+		<set-variable value="#[attributes]" doc:name="fileAttrs  " doc:id="3ff5c473-f41b-415f-87b9-2370a819ddf3" variableName="fileAttrs" doc:description="Remember the attributes from the On New Or Updated File in case they get trashed in a later processor."/>
 		<try doc:name="Try creating api_processing dir" doc:id="7e11b4e3-d4ae-4aa1-857b-a35f71ecfb00" doc:description="Create a folder for dropping extracting their information">
-			<file:create-directory doc:name="api_processing" doc:id="a9577719-3dc0-4ef8-81b3-adb679b56553" config-ref="rootFolder" directoryPath="apis_processing" />
+			<file:create-directory doc:name="apis_processing " doc:id="a9577719-3dc0-4ef8-81b3-adb679b56553" config-ref="rootFolder" directoryPath="apis_processing" />
 			<error-handler >
 				<on-error-continue enableNotifications="false" logException="false" doc:name="OEC - ignore 'FILE_ALREADY_EXISTS'" doc:id="80cb43a9-9c41-421f-b30d-e597a910cdc0" type="FILE:FILE_ALREADY_EXISTS"/>
 			</error-handler>
 		</try>
 		<try doc:name="Try creating dir for this API under api_processing/" doc:id="b8bf7898-df01-4597-bcb5-9134b14d4287" doc:description="Each API we process gets its own directory into which the code puts the sample JSON files, as well as eventually the original ZIP file. This loop attempts to create the dir. If it already exists, that's fine. We just overwrite the files.">
 			<set-variable value="#[output application/java&#10;import substringBeforeLast from dw::core::Strings&#10; ---&#10; ('apis_processing/' ++ (substringBeforeLast(vars.fileAttrs.fileName, &quot;.zip&quot;) as String) as String)]" doc:name="outputDir" doc:id="afaa4613-bd96-4b47-9cc4-69f0c12e229a" variableName="outputDir" />
-			<file:create-directory doc:name="api_processing/&lt;apiname&gt;" doc:id="3436d7a6-0541-4469-8209-c4ea489d50a8" config-ref="rootFolder" directoryPath="#[vars.outputDir]" />
+			<file:create-directory doc:name="apis_processing/&lt;apiname&gt;" doc:id="3436d7a6-0541-4469-8209-c4ea489d50a8" config-ref="rootFolder" directoryPath="#[vars.outputDir]" />
 			<error-handler >
 				<on-error-continue enableNotifications="false" logException="false" doc:name="ignore  'FILE_ALREADY_EXISTS'" doc:id="7b6925f4-a14c-4434-a87b-a4224e14aa65" type="FILE:FILE_ALREADY_EXISTS" />
 			</error-handler>
