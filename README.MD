@@ -30,8 +30,9 @@ To deploy the app on your development system:
 # Usage
 Once you have deployed the app you can start using it. To do so:
 1. Download a _.zip_ file of your RAML API project, or create said _.zip_ from a RAML projec in your local filesystem (e.g. if you are using ATOM's RAML Workbench plugin).
-2. Move the _.zip_ file in Step 1 to /tmp/apis_to_process. (NOTE: if you modified the global element from /tmp, use the folder in that element).
-3. Monitor the _/tmp/apis_processed_ folder for a sub-folder with the same name as the _zip_ file, but without the _.zip_ extension.  This sub-folder will contain the two sample files (XML and JSON) for each NAMEDEXAMPLE fragment file. NOTE that the sample files' pathnames mirror their pathname in the API project.
+2. Create the folder _/tmp/apis_to_process_.
+3. Move the _.zip_ file in Step 1 to the folder _/tmp/apis_to_process_. (NOTE: if you modified the global element from /tmp, use the folder in that element).
+4. Monitor the _/tmp/apis_processed_ folder for a sub-folder with the same name as the _zip_ file, but without the _.zip_ extension.  This sub-folder will contain the two sample files (XML and JSON) for each NAMEDEXAMPLE fragment file. NOTE that the sample files' pathnames mirror their pathname in the API project.
 3) Copy the sample files from these folders into your Studio project folder's /src/test/examples folder.
 4) Use Studio's Meta-data Editor to teach the project about each sample (or those you need).
 
