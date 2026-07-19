@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:compression="http://www.mulesoft.org/schema/mule/compression"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="processNamedExampleFile" doc:id="9a9e1a65-2ab3-431a-8450-35269ead1062" >
+		<try doc:name="Try" doc:id="54023045-72ee-4a7d-b9d8-cfd98e2dd81d">
+								<set-variable doc:name="pathWithoutSuffix" doc:id="c44ebf17-51ca-4671-b0f5-ea34d9864790" variableName="pathWithoutSuffix" value='#[import substringBeforeLast from dw::core::Strings ---&#10;substringBeforeLast(vars.outputDir as String ++ "/" ++ (message.payload[0] as String), ".raml")]' />
+								<try doc:name="Try writing JSON" doc:id="20c037bc-480c-4bfe-a570-5509d281f7db" >
+				<file:write doc:name="the RAML NAMEDEXAMPLE file as a JSON file." doc:id="9c5a8a95-c3fe-48a6-b87f-b996f511efb9" config-ref="rootFolder" path='#[(vars.pathWithoutSuffix default "foo" as String) ++ (".json" as String)]' doc:description="The contents of (payload pluck $)[0] looks like a single string.  Transforms can't parse it as YAML (remember, RAML is based on YAML) as a string. Therefore, the code uses &quot;read()&quot; (from dw::Core) to re-parse the string at YAML.  &#10;&#10;Well-defined Named Examples have a &quot;value:&quot; root higherarchy. Below this are all of the properties of the example. We write the parsed yaml's &quot;value&quot; properties (without the &quot;value&quot; root note) as a JSON file.">
+				<file:content><![CDATA[#[output application/json --- read(payload[1], "application/yaml").value]]]></file:content>
+			</file:write>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="OEC: Ignore errors" doc:id="49f7a344-2018-4fcb-ae8e-62244e4eabc3" />
+				</error-handler>
+			</try>
+								<try doc:name="Try writing XML" doc:id="62b975c6-4f7f-4aa8-a497-2939c29e5507" >
+				<set-variable value="#[output application/java&#10;import * from dw::core::Strings&#10;var baseName = (path: String) -&gt;&#10;	(if (path contains &quot;/&quot;)&#10;	 	substringAfterLast(path as String, &quot;/&quot;)&#10;	 else	&#10;	 	path) as String&#10; ---&#10; (baseName(message.payload[0] as String) replace /Example/ with '')&#10; 	replace /Examples/ with ''&#10; 	replace '.raml' with '']" doc:name="tagFromFilename" doc:id="ea8b5c7f-423e-4981-92d2-58eeadebb4b4" variableName="tagFromFilename"/>
+				<choice doc:name="xml series (list/array) or flat object?" doc:id="30296db0-71a9-411c-b326-9ed65b1b8353">
+									<when expression='#[output application/java --- &#10;(read(payload[1], "application/yaml").value) is Array]'>
+										<file:write doc:name="the RAML NAMEDEXAMPLE file as an XML repeating series" doc:id="5b9c3e46-a66b-47b3-8836-3ed45d5d06cc" doc:description="The contents of (payload pluck $)[0] looks like a single string.  Transforms can't parse it as YAML (remember, RAML is based on YAML) as a string. Therefore, the code uses &quot;read()&quot; (from dw::Core) to re-parse the string at YAML.  &#10;&#10;Well-defined Named Examples have a &quot;value:&quot; root higherarchy. Below this are all of the properties of the example. We write the parsed yaml's &quot;value&quot; properties (without the &quot;value&quot; root note) as a JSON file." config-ref="rootFolder" path='#[(vars.pathWithoutSuffix default "foo" as String) ++ (".xml" as String)]'>
+											<file:content><![CDATA[#[output application/xml import * from dw::core::Strings --- 
+'$(pluralize(vars.tagFromFilename))': 
+{( 
+	(read(payload[1] as String, "application/yaml").value as Array)
+	map (item) -> {
+		'$(singularize(vars.tagFromFilename))': item
+	}
+)}]]]></file:content>
+										</file:write>
+									</when>
+									<otherwise>
+										<file:write doc:name="the RAML NAMEDEXAMPLE file as an XML file" doc:id="75a671ba-3243-4fe3-8aac-e5821d8dd995" doc:description="The contents of (payload pluck $)[0] looks like a single string.  Transforms can't parse it as YAML (remember, RAML is based on YAML) as a string. Therefore, the code uses &quot;read()&quot; (from dw::Core) to re-parse the string at YAML.  &#10;&#10;Well-defined Named Examples have a &quot;value:&quot; root higherarchy. Below this are all of the properties of the example. We write the parsed yaml's &quot;value&quot; properties (without the &quot;value&quot; root note) as a JSON file." config-ref="rootFolder" path='#[(vars.pathWithoutSuffix default "foo" as String) ++ (".xml" as String)]'>
+									<file:content><![CDATA[#[output application/xml import singularize from dw::core::Strings --- { '$(singularize(vars.tagFromFilename))': read(payload[1], "application/yaml").value }]]]></file:content>
+								</file:write>
+									</otherwise>
+								</choice>
+			</try>
+			<error-handler>
+									<on-error-continue enableNotifications="false" logException="true" doc:name="On Error Continue" doc:id="924fa49c-7e5c-4967-8cb6-fad697550bde" type="ANY">
+										<logger level="INFO" doc:name="error info, skip" doc:id="6703e0d2-d45e-4999-89ac-5e93135331e2" message="#['Error processing ' ++ ((payload pluck $$)[0] as String) ++ &quot;: &quot; ++ (error.errorType.identifier default &quot;&quot; as String) ++ &quot;. Skipping...&quot;]" />
+									</on-error-continue>
+								</error-handler>
+							</try>
+	</sub-flow>
+	<sub-flow name="processFilesInZip" doc:id="b9e5e695-e3ba-42a4-b13b-3b9857abbe07" >
+		<foreach doc:name="process each file" doc:id="35239063-b9c1-4d2e-8171-de1114b9bf6f" collection="#[import entrySet from dw::core::Objects --- entrySet(payload)]" doc:description='The foreach loop goes through each element in the payload, i.e. each file in the zip, and determines what to do with it.&#10;a) Skip empty files and files that donot end in ".raml"&#10;b) Only process .raml files that are "NamedExample" RAML fragments'>
+			<choice doc:name="reject empty and non-RAML files" doc:id="5ef67dc2-9f44-463f-a78d-bdd37204020c">
+				<when expression='#[import substringAfterLast from dw::core::Strings&#10;---&#10;(substringAfterLast(payload[0],".") != "raml")&#10;or &#10;(0 == sizeOf(payload[1]))]'>
+					<logger level="INFO" doc:name="skipping file" doc:id="73632887-32e0-405b-ab72-97a0d5b83069" message="#['\nitem ' ++ (payload pluck $$)[0] ++ ' is empty  or not RAML. skipping...']" />
+				</when>
+				<otherwise>
+					<choice doc:name="only write NamedExample fragments" doc:id="a445c2ff-b5c2-48cf-bf08-1b1727a279bc" doc:description="From here on:&#10;- (payload pluck $$)[0] contains the name of the file to be written&#10;- (payload pluck $)[0] contains the contents of that file as extracted from the zip">
+						<when expression='#[startsWith(payload[1],"#%RAML 1.0 NamedExample")]'>
+							<flow-ref doc:name="Flow Reference" doc:id="8325074d-9244-4d19-8c32-e55466ffb859" name="processNamedExampleFile" />
+						</when>
+					</choice>
+				</otherwise>
+			</choice>
+		</foreach>
+	</sub-flow>
+	<flow name="daemonMain" doc:id="b5ef57b9-ac25-45fa-8291-1d3bb5fd857d" >
+		<file:listener doc:name="find new API zip files 10 seconds" doc:id="6e5ebffd-dfa5-464e-b946-c445425886ed" config-ref="rootFolder" recursive="false" directory="apis_to_process" moveToDirectory="apis_processed">
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+			<file:matcher filenamePattern="*.zip" directories="EXCLUDE" symLinks="EXCLUDE" notUpdatedInTheLast="5" timeUnit="SECONDS"/>
+		</file:listener>
+		<set-variable value="#[attributes]" doc:name="fileAttrs " doc:id="3ff5c473-f41b-415f-87b9-2370a819ddf3" variableName="fileAttrs" doc:description="Remember the attributes from the On New Or Updated File in case they get trashed in a later processor."/>
+		<try doc:name="Try creating api_processing dir" doc:id="7e11b4e3-d4ae-4aa1-857b-a35f71ecfb00" doc:description="Create a folder for dropping extracting their information">
+			<file:create-directory doc:name="api_processing" doc:id="a9577719-3dc0-4ef8-81b3-adb679b56553" config-ref="rootFolder" directoryPath="apis_processing" />
+			<error-handler >
+				<on-error-continue enableNotifications="false" logException="false" doc:name="OEC - ignore 'FILE_ALREADY_EXISTS'" doc:id="80cb43a9-9c41-421f-b30d-e597a910cdc0" type="FILE:FILE_ALREADY_EXISTS"/>
+			</error-handler>
+		</try>
+		<try doc:name="Try creating dir for this API under api_processing/" doc:id="b8bf7898-df01-4597-bcb5-9134b14d4287" doc:description="Each API we process gets its own directory into which the code puts the sample JSON files, as well as eventually the original ZIP file. This loop attempts to create the dir. If it already exists, that's fine. We just overwrite the files.">
+			<set-variable value="#[output application/java&#10;import substringBeforeLast from dw::core::Strings&#10; ---&#10; ('apis_processing/' ++ (substringBeforeLast(vars.fileAttrs.fileName, &quot;.zip&quot;) as String) as String)]" doc:name="outputDir" doc:id="afaa4613-bd96-4b47-9cc4-69f0c12e229a" variableName="outputDir" />
+			<file:create-directory doc:name="api_processing/&lt;apiname&gt;" doc:id="3436d7a6-0541-4469-8209-c4ea489d50a8" config-ref="rootFolder" directoryPath="#[vars.outputDir]" />
+			<error-handler >
+				<on-error-continue enableNotifications="false" logException="false" doc:name="ignore  'FILE_ALREADY_EXISTS'" doc:id="7b6925f4-a14c-4434-a87b-a4224e14aa65" type="FILE:FILE_ALREADY_EXISTS" />
+			</error-handler>
+		</try>
+		<compression:extract doc:name="Extract" doc:id="62458f05-dcd9-415b-842a-f540a7bf463b" doc:description="This does the real work of unzipping the downloaded *API.zip file.&#10;It creates a payload with an array of objects, one for each file/dir in the zip file.">
+			<compression:extractor>
+				<compression:zip-extractor/>
+			</compression:extractor>
+		</compression:extract>
+		<flow-ref doc:name="processFilesInZip" doc:id="0c9a0b57-22e0-44ce-abe8-106453099ce6" name="processFilesInZip" />
+		<file:move doc:name=" Move outputDir contents from apis_being_processed to apis_processed, overwriting existing contents if there." doc:id="dcc12d62-0ff9-4da9-b7ae-0d79e357b019" config-ref="rootFolder" sourcePath='#[vars.outputDir]' targetPath='#["apis_processed"]' overwrite="true"/>
+		<try doc:name="Try" doc:id="cfc4a47f-0d3a-4e2f-8b2b-e6dec36438e4" >
+			<file:delete doc:name="Delete the zip file from the apis_processed/ folder, if it is there." doc:id="84966616-90e9-421b-9ef9-3f184d07772b" config-ref="rootFolder" path='#["apis_processed/" ++ vars.fileAttrs.fileName]' />
+			<error-handler >
+				<on-error-continue enableNotifications="false" logException="false" doc:name="On Error Continue" doc:id="42448c4f-18a5-4f76-9ab3-9f947d016e0c" />
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="payload" doc:id="18058dcb-5a06-4e78-a6ef-f22ed2d1fddb" message="#['finished processing ' ++ vars.fileAttrs.fileName]" />
+	</flow>
+</mule>
